@@ -12,3 +12,4 @@ venv/
 docker-compose.yml
 
 .env.example
+Dockerfile.dev
