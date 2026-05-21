@@ -1,5 +1,5 @@
 """
-db_client.py
+db_client.py 
 
 Manages async connections to:
   - MongoDB  (read-only)  — Node.js comment/post data
@@ -29,7 +29,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy import text
 
 from app.models.settings import settings
-# from sqlalchemy.pool import AsyncAdaptedQueuePool
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,8 +47,12 @@ def get_mongo_db() -> AsyncIOMotorDatabase:
                 "MONGODB_URI is not configured. "
                 "Set it in .env to enable direct MongoDB access for scanning."
             )
-        _mongo_client = AsyncIOMotorClient(settings.mongodb_uri)
-        _mongo_db     = _mongo_client[settings.mongodb_db]
+        _mongo_client = AsyncIOMotorClient(
+            settings.mongodb_uri,
+            # [Fix 3] Fail fast on bad URI rather than blocking the event loop
+            serverSelectionTimeoutMS=5_000,
+        )
+        _mongo_db = _mongo_client[settings.mongodb_db]
         logger.info("MongoDB connection established (db=%s)", settings.mongodb_db)
     return _mongo_db
 
@@ -63,7 +67,7 @@ async def close_mongo() -> None:
 
 # ── Laravel DB (SQLAlchemy async) ─────────────────────────────────────────────
 
-_engine:         AsyncEngine | None = None
+_engine:          AsyncEngine | None = None
 _session_factory: async_sessionmaker | None = None
 
 
@@ -79,16 +83,15 @@ def get_session_factory() -> async_sessionmaker:
             settings.laravel_db_url,
             echo=False,
             # pool_pre_ping=True,
-            pool_recycle=3600,  
-            pool_pre_ping=False,  
+            pool_pre_ping=False, 
+            pool_recycle=3600,
             pool_size=5,
             max_overflow=10,
-            # poolclass=AsyncAdaptedQueuePool,
         )
         _session_factory = async_sessionmaker(
             _engine, class_=AsyncSession, expire_on_commit=False
         )
-        logger.info("Laravel DB connection pool ready")
+        logger.info("Laravel DB connection pool ready (pool_pre_ping=True)")
     return _session_factory
 
 
@@ -99,24 +102,15 @@ async def close_laravel_db() -> None:
         _engine          = None
         _session_factory = None
 
-# Then add a listener to handle connection checking manually
-# @_engine.event.listener_for(_engine, "connect")
-# def receive_connect(dbapi_connection, connection_record):
-#     """Custom connection check for async MySQL"""
-#     try:
-#         # For async drivers, we need to handle this differently
-#         # But with pool_pre_ping=False, we might not need it
-#         pass
-#     except Exception:
-#         connection_record.invalidate()
+
 # ── Laravel DB write helpers ───────────────────────────────────────────────────
 
 async def insert_moderation_record(
     session:         AsyncSession,
-    comment_id:      str | None,   # None when content_type='post'
+    comment_id:      str | None,
     post_id:         str,
-    content_type:    str,          # 'comment' | 'post'
-    content_id:      str,          # the ID of the comment or post being analysed
+    content_type:    str,
+    content_id:      str,
     author_id:       str,
     content:         str,
     verdict:         str,
@@ -125,20 +119,26 @@ async def insert_moderation_record(
     explanation:     str,
     flagged_phrases: list[str],
     model:           str,
-    trigger:         str,          # 'auto' | 'manual'
-) -> int:
+    trigger:         str,
+) -> int | None:
     """
     Insert a row into moderation_records.
-    Returns the new row's auto-increment id.
+
+    [Fix 1] Uses INSERT IGNORE so duplicate rows (same content_id +
+    content_type + calendar day) are silently skipped rather than raising
+    an IntegrityError that would abort the entire scan batch.
+
+    Returns the new row's auto-increment id, or None if the row was
+    a duplicate and was ignored.
     """
     import json as _json
     result = await session.execute(
         text("""
-            INSERT INTO moderation_records
+            INSERT IGNORE INTO moderation_records
                 (comment_id, post_id, content_type, content_id,
                  author_id, content, verdict,
                  confidence_pct, categories, explanation, flagged_phrases,
-                 model, trigger, created_at, updated_at)
+                 model, `trigger`, created_at, updated_at)
             VALUES
                 (:comment_id, :post_id, :content_type, :content_id,
                  :author_id, :content, :verdict,
@@ -162,15 +162,17 @@ async def insert_moderation_record(
             "now":             _now(),
         },
     )
-    return result.lastrowid
+    # lastrowid is 0 when INSERT IGNORE skips a duplicate
+    row_id = result.lastrowid
+    return row_id if row_id else None
 
 
 async def upsert_moderation_queue(
     session:              AsyncSession,
-    comment_id:           str | None,   # None when content_type='post'
+    comment_id:           str | None,
     post_id:              str,
-    content_type:         str,          # 'comment' | 'post'
-    content_id:           str,          # the ID of the comment or post
+    content_type:         str,
+    content_id:           str,
     author_id:            str,
     content:              str,
     verdict:              str,
@@ -215,18 +217,18 @@ async def upsert_moderation_queue(
                     updated_at           = excluded.updated_at
             """),
             {
-                "comment_id":     comment_id,
-                "post_id":        post_id,
-                "content_type":   content_type,
-                "content_id":     content_id,
-                "author_id":      author_id,
-                "content":        content,
-                "verdict":        verdict,
-                "confidence_pct": confidence_pct,
-                "explanation":    explanation,
+                "comment_id":      comment_id,
+                "post_id":         post_id,
+                "content_type":    content_type,
+                "content_id":      content_id,
+                "author_id":       author_id,
+                "content":         content,
+                "verdict":         verdict,
+                "confidence_pct":  confidence_pct,
+                "explanation":     explanation,
                 "flagged_phrases": _json.dumps(flagged_phrases),
-                "record_id":      moderation_record_id,
-                "now":            now,
+                "record_id":       moderation_record_id,
+                "now":             now,
             },
         )
     else:
@@ -257,18 +259,18 @@ async def upsert_moderation_queue(
                     updated_at           = VALUES(updated_at)
             """),
             {
-                "comment_id":     comment_id,
-                "post_id":        post_id,
-                "content_type":   content_type,
-                "content_id":     content_id,
-                "author_id":      author_id,
-                "content":        content,
-                "verdict":        verdict,
-                "confidence_pct": confidence_pct,
-                "explanation":    explanation,
+                "comment_id":      comment_id,
+                "post_id":         post_id,
+                "content_type":    content_type,
+                "content_id":      content_id,
+                "author_id":       author_id,
+                "content":         content,
+                "verdict":         verdict,
+                "confidence_pct":  confidence_pct,
+                "explanation":     explanation,
                 "flagged_phrases": _json.dumps(flagged_phrases),
-                "record_id":      moderation_record_id,
-                "now":            now,
+                "record_id":       moderation_record_id,
+                "now":             now,
             },
         )
 
