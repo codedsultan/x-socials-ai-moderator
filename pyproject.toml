@@ -23,7 +23,8 @@ exclude = ["migrations/"]
 # Matches the former pytest.ini — delete pytest.ini from the repo root.
 asyncio_mode = "auto"
 # Tests live at app/tests/ — must match actual location, not top-level tests/
-testpaths = ["app/tests"]
+# testpaths = ["app/tests"]
+testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
