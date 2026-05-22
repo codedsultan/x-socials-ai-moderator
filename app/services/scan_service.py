@@ -12,6 +12,7 @@ Changes:
     Reconciliation  — runs daily via Laravel scheduler, looks back 48h,
                       catches anything the webhook dropped
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -38,16 +39,15 @@ logger = logging.getLogger(__name__)
 
 
 class ScanService:
-
     def __init__(self) -> None:
         self._active_scans: set[asyncio.Task] = set()
 
     async def trigger(
         self,
-        post_id:        str | None          = None,
-        force_model:    str | None          = None,
-        content_type:   ContentType | None  = None,
-        reconciliation: bool                = False,
+        post_id: str | None = None,
+        force_model: str | None = None,
+        content_type: ContentType | None = None,
+        reconciliation: bool = False,
     ) -> int:
         """
         Start a background scan and return the scan_run_id immediately.
@@ -86,27 +86,26 @@ class ScanService:
 
     async def _run(
         self,
-        run_id:         int,
-        post_id:        str | None,
-        force_model:    str | None,
-        content_type:   ContentType | None,
+        run_id: int,
+        post_id: str | None,
+        force_model: str | None,
+        content_type: ContentType | None,
         reconciliation: bool,
     ) -> None:
         counts = {
-            "posts_scanned":     0,
-            "comments_scanned":  0,
-            "flagged":           0,
+            "posts_scanned": 0,
+            "comments_scanned": 0,
+            "flagged": 0,
             "queued_for_review": 0,
-            "safe":              0,
+            "safe": 0,
         }
 
-        factory      = get_session_factory()
+        factory = get_session_factory()
         current_task = asyncio.current_task()
 
         # Use the longer lookback for reconciliation sweeps
         lookback_h = (
-            settings.reconciliation_lookback_h if reconciliation
-            else settings.scan_lookback_h
+            settings.reconciliation_lookback_h if reconciliation else settings.scan_lookback_h
         )
 
         try:
@@ -122,8 +121,7 @@ class ScanService:
                 unique_post_ids: set[str] = set()
 
                 comment_cursor = db.comments.find(
-                    {"createdAt": {"$gte": cutoff}},
-                    {"postId": 1}
+                    {"createdAt": {"$gte": cutoff}}, {"postId": 1}
                 ).limit(5000)
 
                 async for doc in comment_cursor:
@@ -132,8 +130,7 @@ class ScanService:
                     unique_post_ids.add(str(doc["postId"]))
 
                 post_cursor = db.posts.find(
-                    {"createdAt": {"$gte": cutoff}, "deletedAt": None},
-                    {"_id": 1}
+                    {"createdAt": {"$gte": cutoff}, "deletedAt": None}, {"_id": 1}
                 ).limit(2000)
 
                 async for doc in post_cursor:
@@ -146,7 +143,9 @@ class ScanService:
             counts["posts_scanned"] = len(post_ids)
             logger.info(
                 "Scan %d: %d posts, content_type=%s, mode=%s (lookback=%dh)",
-                run_id, len(post_ids), content_type or "both",
+                run_id,
+                len(post_ids),
+                content_type or "both",
                 "reconciliation" if reconciliation else "standard",
                 lookback_h,
             )
@@ -161,17 +160,21 @@ class ScanService:
 
                 try:
                     stats = await self._scan_one_post(pid, factory, force_model, content_type)
-                    counts["comments_scanned"]  += stats["comments_scanned"]
-                    counts["flagged"]           += stats["flagged"]
+                    counts["comments_scanned"] += stats["comments_scanned"]
+                    counts["flagged"] += stats["flagged"]
                     counts["queued_for_review"] += stats["review"]
-                    counts["safe"]              += stats["safe"]
+                    counts["safe"] += stats["safe"]
                     processed += 1
 
                     if processed % 10 == 0 or processed == len(post_ids):
                         logger.info(
                             "Scan %d progress: %d/%d posts (flagged=%d, review=%d, safe=%d)",
-                            run_id, processed, len(post_ids),
-                            counts["flagged"], counts["queued_for_review"], counts["safe"],
+                            run_id,
+                            processed,
+                            len(post_ids),
+                            counts["flagged"],
+                            counts["queued_for_review"],
+                            counts["safe"],
                         )
 
                 except Exception as post_error:
@@ -204,9 +207,9 @@ class ScanService:
 
     async def _scan_one_post(
         self,
-        post_id:      str,
-        factory:      Any,
-        force_model:  str | None,
+        post_id: str,
+        factory: Any,
+        force_model: str | None,
         content_type: ContentType | None,
     ) -> dict[str, int]:
         counts = {"comments_scanned": 0, "flagged": 0, "review": 0, "safe": 0}
@@ -214,22 +217,22 @@ class ScanService:
         if content_type != "comment":
             s = await self._scan_post_content(post_id, factory, force_model)
             counts["flagged"] += s["flagged"]
-            counts["review"]  += s["review"]
-            counts["safe"]    += s["safe"]
+            counts["review"] += s["review"]
+            counts["safe"] += s["safe"]
 
         if content_type != "post":
             s = await self._scan_comments(post_id, factory, force_model)
             counts["comments_scanned"] += s["scanned"]
-            counts["flagged"]          += s["flagged"]
-            counts["review"]           += s["review"]
-            counts["safe"]             += s["safe"]
+            counts["flagged"] += s["flagged"]
+            counts["review"] += s["review"]
+            counts["safe"] += s["safe"]
 
         return counts
 
     async def _scan_post_content(
         self,
-        post_id:     str,
-        factory:     Any,
+        post_id: str,
+        factory: Any,
         force_model: str | None,
     ) -> dict[str, int]:
         counts = {"flagged": 0, "review": 0, "safe": 0}
@@ -243,8 +246,8 @@ class ScanService:
         if post_id in already:
             return counts
 
-        title   = post_doc.get("title", "")
-        body    = post_doc.get("content", "")
+        title = post_doc.get("title", "")
+        body = post_doc.get("content", "")
         content = f"Title: {title}\n\nBody:\n{body}".strip()
         if not content:
             return counts
@@ -252,28 +255,44 @@ class ScanService:
         author_id = str(post_doc.get("authorId", ""))
 
         result = await moderation_service.moderate(
-            content_id=post_id, content=content,
-            author_id=author_id, model=force_model, content_type="post",
+            content_id=post_id,
+            content=content,
+            author_id=author_id,
+            model=force_model,
+            content_type="post",
         )
 
         async with factory() as session:
             record_id = await insert_moderation_record(
-                session=session, comment_id=None, post_id=post_id,
-                content_type="post", content_id=post_id, author_id=author_id,
-                content=content, verdict=result.verdict,
+                session=session,
+                comment_id=None,
+                post_id=post_id,
+                content_type="post",
+                content_id=post_id,
+                author_id=author_id,
+                content=content,
+                verdict=result.verdict,
                 confidence_pct=int(round(result.confidence * 100)),
-                categories=result.categories, explanation=result.explanation,
+                categories=result.categories,
+                explanation=result.explanation,
                 flagged_phrases=result.flaggedPhrases,
-                model=force_model or settings.moderator_model, trigger="auto",
+                model=force_model or settings.moderator_model,
+                trigger="auto",
             )
 
             if record_id and result.verdict in ("review", "remove"):
                 await upsert_moderation_queue(
-                    session=session, comment_id=None, post_id=post_id,
-                    content_type="post", content_id=post_id, author_id=author_id,
-                    content=content, verdict=result.verdict,
+                    session=session,
+                    comment_id=None,
+                    post_id=post_id,
+                    content_type="post",
+                    content_id=post_id,
+                    author_id=author_id,
+                    content=content,
+                    verdict=result.verdict,
                     confidence_pct=int(round(result.confidence * 100)),
-                    explanation=result.explanation, flagged_phrases=result.flaggedPhrases,
+                    explanation=result.explanation,
+                    flagged_phrases=result.flaggedPhrases,
                     moderation_record_id=record_id,
                 )
 
@@ -290,29 +309,29 @@ class ScanService:
 
     async def _scan_comments(
         self,
-        post_id:     str,
-        factory:     Any,
+        post_id: str,
+        factory: Any,
         force_model: str | None,
     ) -> dict[str, int]:
         counts = {"scanned": 0, "flagged": 0, "review": 0, "safe": 0}
         db = get_mongo_db()
 
-        cursor   = db.comments.find({"postId": post_id, "deletedAt": None})
+        cursor = db.comments.find({"postId": post_id, "deletedAt": None})
         comments: list[dict] = []
         async for doc in cursor:
-            comments.append({
-                "id":       str(doc["_id"]),
-                "content":  doc.get("content", ""),
-                "authorId": str(doc.get("authorId", "")),
-                "postId":   post_id,
-            })
+            comments.append(
+                {
+                    "id": str(doc["_id"]),
+                    "content": doc.get("content", ""),
+                    "authorId": str(doc.get("authorId", "")),
+                    "postId": post_id,
+                }
+            )
 
         if not comments:
             return counts
 
-        already_done = await self._already_analysed(
-            [c["id"] for c in comments], "comment", factory
-        )
+        already_done = await self._already_analysed([c["id"] for c in comments], "comment", factory)
         new_comments = [c for c in comments if c["id"] not in already_done]
 
         if not new_comments:
@@ -321,29 +340,31 @@ class ScanService:
         for i in range(0, len(new_comments), settings.scan_batch_size):
             batch = new_comments[i : i + settings.scan_batch_size]
             stats = await self._analyse_and_store_comments(batch, post_id, factory, force_model)
-            counts["scanned"]  += stats["scanned"]
-            counts["flagged"]  += stats["flagged"]
-            counts["review"]   += stats["review"]
-            counts["safe"]     += stats["safe"]
+            counts["scanned"] += stats["scanned"]
+            counts["flagged"] += stats["flagged"]
+            counts["review"] += stats["review"]
+            counts["safe"] += stats["safe"]
 
         return counts
 
     async def _already_analysed(
         self,
-        ids:          list[str],
+        ids: list[str],
         content_type: str,
-        factory:      Any,
+        factory: Any,
     ) -> set[str]:
         if not ids:
             return set()
 
-        today_start = datetime.now(UTC).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        ).strftime("%Y-%m-%d %H:%M:%S")
+        today_start = (
+            datetime.now(UTC)
+            .replace(hour=0, minute=0, second=0, microsecond=0)
+            .strftime("%Y-%m-%d %H:%M:%S")
+        )
 
         placeholders = ",".join([f":id{i}" for i in range(len(ids))])
-        params       = {f"id{i}": v for i, v in enumerate(ids)}
-        params["today"]        = today_start
+        params = {f"id{i}": v for i, v in enumerate(ids)}
+        params["today"] = today_start
         params["content_type"] = content_type
 
         async with factory() as session:
@@ -360,15 +381,17 @@ class ScanService:
 
     async def _analyse_and_store_comments(
         self,
-        comments:    list[dict],
-        post_id:     str,
-        factory:     Any,
+        comments: list[dict],
+        post_id: str,
+        factory: Any,
         force_model: str | None,
     ) -> dict[str, int]:
         stats = {"scanned": len(comments), "flagged": 0, "review": 0, "safe": 0}
 
         results = await moderation_service.moderate_batch(
-            items=comments, model=force_model, content_type="comment",
+            items=comments,
+            model=force_model,
+            content_type="comment",
         )
 
         comment_map = {c["id"]: c for c in comments}
@@ -380,21 +403,29 @@ class ScanService:
                     continue
 
                 record_id = await insert_moderation_record(
-                    session=session, comment_id=result.id, post_id=post_id,
-                    content_type="comment", content_id=result.id,
+                    session=session,
+                    comment_id=result.id,
+                    post_id=post_id,
+                    content_type="comment",
+                    content_id=result.id,
                     author_id=comment.get("authorId", ""),
                     content=comment.get("content", ""),
                     verdict=result.verdict,
                     confidence_pct=int(round(result.confidence * 100)),
-                    categories=result.categories, explanation=result.explanation,
+                    categories=result.categories,
+                    explanation=result.explanation,
                     flagged_phrases=result.flaggedPhrases,
-                    model=force_model or settings.moderator_model, trigger="auto",
+                    model=force_model or settings.moderator_model,
+                    trigger="auto",
                 )
 
                 if record_id and result.verdict in ("review", "remove"):
                     await upsert_moderation_queue(
-                        session=session, comment_id=result.id, post_id=post_id,
-                        content_type="comment", content_id=result.id,
+                        session=session,
+                        comment_id=result.id,
+                        post_id=post_id,
+                        content_type="comment",
+                        content_id=result.id,
                         author_id=comment.get("authorId", ""),
                         content=comment.get("content", ""),
                         verdict=result.verdict,

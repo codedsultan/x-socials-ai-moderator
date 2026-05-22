@@ -13,6 +13,7 @@ New settings:
                               frequently. The reconciliation scan uses this longer
                               window and runs daily to catch webhook-missed items.
 """
+
 from __future__ import annotations
 
 from typing import Literal
@@ -24,32 +25,32 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # ── Moderation mode ───────────────────────────────────────────────────────
-    moderation_mode: Literal[
-        "rule", "anthropic", "openai", "ollama", "openrouter", "hybrid"
-    ] = "hybrid"
+    moderation_mode: Literal["rule", "anthropic", "openai", "ollama", "openrouter", "hybrid"] = (
+        "hybrid"
+    )
 
     # ── Anthropic ─────────────────────────────────────────────────────────────
     anthropic_api_key: str = ""
-    moderator_model:   str = "claude-haiku-3-5-20251001"
+    moderator_model: str = "claude-haiku-3-5-20251001"
 
     # ── OpenAI-compatible ─────────────────────────────────────────────────────
-    openai_api_key:  str = ""
+    openai_api_key: str = ""
     openai_base_url: str = "https://api.openai.com/v1"
-    openai_model:    str = "gpt-4o-mini"
+    openai_model: str = "gpt-4o-mini"
 
     # ── Ollama ────────────────────────────────────────────────────────────────
     ollama_base_url: str = "http://localhost:11434/v1"
-    ollama_model:    str = "llama3.2"
+    ollama_model: str = "llama3.2"
 
     # ── OpenRouter ────────────────────────────────────────────────────────────
-    openrouter_api_key:  str = ""
-    openrouter_model:    str = "anthropic/claude-haiku-3-5"
+    openrouter_api_key: str = ""
+    openrouter_model: str = "anthropic/claude-haiku-3-5"
     openrouter_site_url: str = "https://github.com/codesultan/x-socials"
-    openrouter_app_title:str = "X-Socials AI Moderator"
+    openrouter_app_title: str = "X-Socials AI Moderator"
 
     # ── Hybrid mode ───────────────────────────────────────────────────────────
-    hybrid_safe_ceiling:  float = 0.15
-    hybrid_flag_floor:    float = 0.80
+    hybrid_safe_ceiling: float = 0.15
+    hybrid_flag_floor: float = 0.80
     hybrid_smart_backend: Literal["anthropic", "openai", "ollama", "openrouter"] = "openrouter"
 
     # ── Server ────────────────────────────────────────────────────────────────
@@ -62,7 +63,7 @@ class Settings(BaseSettings):
 
     # ── MongoDB ───────────────────────────────────────────────────────────────
     mongodb_uri: str = ""
-    mongodb_db:  str = "x_socials"
+    mongodb_db: str = "x_socials"
 
     # ── Laravel DB ────────────────────────────────────────────────────────────
     laravel_db_url: str = ""

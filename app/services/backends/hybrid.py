@@ -24,6 +24,7 @@ Configuration (all tunable via env vars / Settings):
   HYBRID_FAST_FLAG_FLOOR    – scores at or above this are returned as-is (flagged)
   Everything in between is sent to the smart backend.
 """
+
 from __future__ import annotations
 
 import logging
@@ -50,26 +51,22 @@ class HybridBackend(ModerationBackend):
 
     def __init__(
         self,
-        fast:         ModerationBackend,
-        smart:        ModerationBackend,
+        fast: ModerationBackend,
+        smart: ModerationBackend,
         safe_ceiling: float | None = None,
-        flag_floor:   float | None = None,
+        flag_floor: float | None = None,
     ) -> None:
-        self._fast        = fast
-        self._smart       = smart
-        self._safe_ceil = (
-            safe_ceiling if safe_ceiling is not None else settings.hybrid_safe_ceiling
-        )
-        self._flag_floor = (
-            flag_floor if flag_floor is not None else settings.hybrid_flag_floor
-        )
+        self._fast = fast
+        self._smart = smart
+        self._safe_ceil = safe_ceiling if safe_ceiling is not None else settings.hybrid_safe_ceiling
+        self._flag_floor = flag_floor if flag_floor is not None else settings.hybrid_flag_floor
 
     async def analyse(
         self,
-        content_id:   str,
-        content:      str,
+        content_id: str,
+        content: str,
         content_type: ContentType = "comment",
-        author_id:    str         = "",
+        author_id: str = "",
     ) -> ModerationResult:
         # ── Stage 1: fast classifier ──────────────────────────────────────────
         fast_result = await self._fast.analyse(content_id, content, content_type, author_id)
@@ -99,7 +96,10 @@ class HybridBackend(ModerationBackend):
         # ── Stage 2: ambiguous — escalate to LLM ─────────────────────────────
         logger.debug(
             "HybridBackend: %s escalating to smart backend (conf=%.3f, window=[%.2f, %.2f])",
-            content_id, confidence, self._safe_ceil, self._flag_floor,
+            content_id,
+            confidence,
+            self._safe_ceil,
+            self._flag_floor,
         )
         smart_result = await self._smart.analyse(content_id, content, content_type, author_id)
 

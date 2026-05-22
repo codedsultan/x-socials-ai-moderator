@@ -15,6 +15,7 @@ One client, zero lock-in.  Point it at:
 All providers receive the same structured JSON prompt; the schema is
 identical to the Anthropic backend so results are interchangeable.
 """
+
 from __future__ import annotations
 
 import json
@@ -43,21 +44,21 @@ class OpenAICompatBackend(ModerationBackend):
 
     def __init__(
         self,
-        base_url:   str,
-        api_key:    str,
-        model:      str,
+        base_url: str,
+        api_key: str,
+        model: str,
         max_tokens: int = 512,
     ) -> None:
-        self._client    = AsyncOpenAI(base_url=base_url, api_key=api_key)
-        self._model     = model
+        self._client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+        self._model = model
         self._max_tokens = max_tokens
 
     async def analyse(
         self,
-        content_id:   str,
-        content:      str,
+        content_id: str,
+        content: str,
         content_type: ContentType = "comment",
-        author_id:    str         = "",
+        author_id: str = "",
     ) -> ModerationResult:
         try:
             raw = await self._call(content, content_type)
@@ -69,8 +70,8 @@ class OpenAICompatBackend(ModerationBackend):
     # ── Internals ─────────────────────────────────────────────────────────────
 
     async def _call(self, content: str, content_type: ContentType) -> dict[str, Any]:
-        system  = POST_PROMPT if content_type == "post" else COMMENT_PROMPT
-        label   = "Post" if content_type == "post" else "Comment"
+        system = POST_PROMPT if content_type == "post" else COMMENT_PROMPT
+        label = "Post" if content_type == "post" else "Comment"
         message = f"{label} to moderate:\n\n{content}"
 
         response = await self._client.chat.completions.create(
@@ -78,7 +79,7 @@ class OpenAICompatBackend(ModerationBackend):
             max_tokens=self._max_tokens,
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user",   "content": message},
+                {"role": "user", "content": message},
             ],
             # Request JSON mode when the provider supports it.
             # Providers that don't support response_format silently ignore it.
@@ -94,12 +95,12 @@ class OpenAICompatBackend(ModerationBackend):
             raise ValueError(f"Provider returned invalid JSON: {text[:200]}") from exc
 
     def _parse(self, content_id: str, raw: dict[str, Any]) -> ModerationResult:
-        is_problematic  = bool(raw.get("is_problematic", False))
-        confidence      = float(raw.get("confidence", 0.0))
-        categories      = raw.get("categories", [])
-        explanation     = raw.get("explanation", "No explanation provided.")
+        is_problematic = bool(raw.get("is_problematic", False))
+        confidence = float(raw.get("confidence", 0.0))
+        categories = raw.get("categories", [])
+        explanation = raw.get("explanation", "No explanation provided.")
         flagged_phrases = raw.get("flagged_phrases", [])
-        verdict         = self._verdict(is_problematic, confidence)
+        verdict = self._verdict(is_problematic, confidence)
 
         return ModerationResult(
             id=content_id,

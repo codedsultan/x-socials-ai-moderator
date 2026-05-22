@@ -6,6 +6,7 @@ Abstract base class for all moderation backends.
 Every backend receives the same inputs and must return a ModerationResult.
 The calling service (ModerationService) is entirely backend-agnostic.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -25,10 +26,10 @@ class ModerationBackend(ABC):
     @abstractmethod
     async def analyse(
         self,
-        content_id:   str,
-        content:      str,
+        content_id: str,
+        content: str,
         content_type: ContentType = "comment",
-        author_id:    str         = "",
+        author_id: str = "",
     ) -> ModerationResult: ...
 
     # ── Shared verdict helper (available to all subclasses) ───────────────────

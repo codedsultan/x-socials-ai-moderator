@@ -5,6 +5,7 @@ Changes:
   GET /health now returns a 'realtime_stats' block from realtime_queue.stats.
   All existing endpoints unchanged.
 """
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
 
@@ -40,6 +41,7 @@ async def verify_api_key(key: str | None = Depends(api_key_header)) -> None:
 
 # ── Health ────────────────────────────────────────────────────────────────────
 
+
 @router.get(
     "/health",
     summary="Service health and queue stats",
@@ -52,14 +54,15 @@ async def verify_api_key(key: str | None = Depends(api_key_header)) -> None:
 )
 async def health() -> dict:
     return {
-        "status":               "ok",
+        "status": "ok",
         "realtime_queue_depth": realtime_queue.depth,
-        "realtime_stats":       realtime_queue.stats.to_dict(),
-        "active_scans":         len(scan_service._active_scans),
+        "realtime_stats": realtime_queue.stats.to_dict(),
+        "active_scans": len(scan_service._active_scans),
     }
 
 
 # ── Real-time enqueue (webhook from Node.js) ──────────────────────────────────
+
 
 @router.post(
     "/moderate/enqueue",
@@ -74,24 +77,25 @@ async def health() -> dict:
 )
 async def enqueue_content(
     body: EnqueueRequest,
-    _:    None = Depends(verify_api_key),
+    _: None = Depends(verify_api_key),
 ) -> EnqueueResponse:
     realtime_queue.enqueue(
-        content_id   = body.id,
-        content      = body.content,
-        author_id    = body.author_id,
-        content_type = body.content_type,
-        post_id      = body.post_id,
+        content_id=body.id,
+        content=body.content,
+        author_id=body.author_id,
+        content_type=body.content_type,
+        post_id=body.post_id,
     )
     return EnqueueResponse(
-        accepted     = True,
-        content_id   = body.id,
-        content_type = body.content_type,
-        queue_depth  = realtime_queue.depth,
+        accepted=True,
+        content_id=body.id,
+        content_type=body.content_type,
+        queue_depth=realtime_queue.depth,
     )
 
 
 # ── On-demand endpoints ───────────────────────────────────────────────────────
+
 
 @router.post(
     "/moderate",
@@ -103,9 +107,9 @@ async def enqueue_content(
     ),
 )
 async def moderate_single(
-    body:        CommentRequest,
+    body: CommentRequest,
     force_model: str | None = None,
-    _:           None = Depends(verify_api_key),
+    _: None = Depends(verify_api_key),
 ) -> ModerationResult:
     return await moderation_service.moderate(
         content_id=body.id,
@@ -123,10 +127,10 @@ async def moderate_single(
 )
 async def moderate_batch(
     body: BatchModerationRequest,
-    _:    None = Depends(verify_api_key),
+    _: None = Depends(verify_api_key),
 ) -> BatchModerationResponse:
     comments = [c.model_dump(by_alias=True) for c in body.comments]
-    results  = await moderation_service.moderate_batch(comments)
+    results = await moderation_service.moderate_batch(comments)
 
     return BatchModerationResponse(
         results=results,
@@ -137,6 +141,7 @@ async def moderate_batch(
 
 
 # ── Background scan ───────────────────────────────────────────────────────────
+
 
 @router.post(
     "/scan/trigger",
@@ -150,21 +155,21 @@ async def moderate_batch(
 )
 async def trigger_scan(
     body: ScanTriggerRequest,
-    _:    None = Depends(verify_api_key),
+    _: None = Depends(verify_api_key),
 ) -> ScanTriggerResponse:
     try:
         run_id = await scan_service.trigger(
-            post_id        = body.post_id,
-            force_model    = body.force_model,
-            content_type   = body.content_type,
-            reconciliation = body.mode == "reconciliation",
+            post_id=body.post_id,
+            force_model=body.force_model,
+            content_type=body.content_type,
+            reconciliation=body.mode == "reconciliation",
         )
         scope = f"post {body.post_id}" if body.post_id else "full platform"
-        ct    = f" [{body.content_type}]" if body.content_type else " [posts + comments]"
+        ct = f" [{body.content_type}]" if body.content_type else " [posts + comments]"
         return ScanTriggerResponse(
-            started     = True,
-            scan_run_id = run_id,
-            message     = f"Scan started for {scope}{ct} mode={body.mode} (run_id={run_id})",
+            started=True,
+            scan_run_id=run_id,
+            message=f"Scan started for {scope}{ct} mode={body.mode} (run_id={run_id})",
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

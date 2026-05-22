@@ -1,5 +1,5 @@
 """
-openrouter_backend.py 
+openrouter_backend.py
 
 OpenRouter moderation backend.
 
@@ -36,6 +36,7 @@ OpenRouter requires two extra headers per their docs:
   HTTP-Referer: your site URL (used for their abuse filtering dashboard)
   X-Title:      your app name (appears in your OpenRouter usage dashboard)
 """
+
 from __future__ import annotations
 
 import json
@@ -71,17 +72,17 @@ class OpenRouterBackend(ModerationBackend):
 
     def __init__(
         self,
-        model:      str | None = None,
-        site_url:   str | None = None,
-        app_title:  str | None = None,
+        model: str | None = None,
+        site_url: str | None = None,
+        app_title: str | None = None,
         max_tokens: int = 512,
     ) -> None:
-        self._model      = model or settings.openrouter_model
+        self._model = model or settings.openrouter_model
         self._max_tokens = max_tokens
         self._client: AsyncOpenAI | None = None
 
         # OpenRouter-required headers — stored here, injected on first client build
-        self._site_url  = site_url  or settings.openrouter_site_url
+        self._site_url = site_url or settings.openrouter_site_url
         self._app_title = app_title or settings.openrouter_app_title
 
     @property
@@ -101,20 +102,18 @@ class OpenRouterBackend(ModerationBackend):
                 # without any change to the call sites.
                 default_headers={
                     "HTTP-Referer": self._site_url,
-                    "X-Title":      self._app_title,
+                    "X-Title": self._app_title,
                 },
             )
-            logger.info(
-                "OpenRouterBackend client initialised (model=%s)", self._model
-            )
+            logger.info("OpenRouterBackend client initialised (model=%s)", self._model)
         return self._client
 
     async def analyse(
         self,
-        content_id:   str,
-        content:      str,
+        content_id: str,
+        content: str,
         content_type: ContentType = "comment",
-        author_id:    str         = "",
+        author_id: str = "",
     ) -> ModerationResult:
         try:
             raw = await self._call(content, content_type)
@@ -126,8 +125,8 @@ class OpenRouterBackend(ModerationBackend):
     # ── Internals ─────────────────────────────────────────────────────────────
 
     async def _call(self, content: str, content_type: ContentType) -> dict[str, Any]:
-        system  = POST_PROMPT if content_type == "post" else COMMENT_PROMPT
-        label   = "Post" if content_type == "post" else "Comment"
+        system = POST_PROMPT if content_type == "post" else COMMENT_PROMPT
+        label = "Post" if content_type == "post" else "Comment"
         message = f"{label} to moderate:\n\n{content}"
 
         response = await self.client.chat.completions.create(
@@ -135,7 +134,7 @@ class OpenRouterBackend(ModerationBackend):
             max_tokens=self._max_tokens,
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user",   "content": message},
+                {"role": "user", "content": message},
             ],
             # Most OpenRouter models support json_object response format.
             # Models that don't will ignore it and still return JSON because
@@ -154,12 +153,12 @@ class OpenRouterBackend(ModerationBackend):
             ) from exc
 
     def _parse(self, content_id: str, raw: dict[str, Any]) -> ModerationResult:
-        is_problematic  = bool(raw.get("is_problematic", False))
-        confidence      = float(raw.get("confidence", 0.0))
-        categories      = raw.get("categories", [])
-        explanation     = raw.get("explanation", "No explanation provided.")
+        is_problematic = bool(raw.get("is_problematic", False))
+        confidence = float(raw.get("confidence", 0.0))
+        categories = raw.get("categories", [])
+        explanation = raw.get("explanation", "No explanation provided.")
         flagged_phrases = raw.get("flagged_phrases", [])
-        verdict         = self._verdict(is_problematic, confidence)
+        verdict = self._verdict(is_problematic, confidence)
 
         return ModerationResult(
             id=content_id,

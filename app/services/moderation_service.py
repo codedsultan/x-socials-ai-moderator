@@ -12,6 +12,7 @@ The backend is selected once at startup from MODERATION_MODE (settings):
   openrouter  → OpenRouterBackend (200+ models, unified billing, auto-fallback)
   hybrid      → HybridBackend (rule-based pre-filter + LLM escalation)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -117,10 +118,10 @@ class ModerationService:
 
     async def moderate(
         self,
-        content_id:   str,
-        content:      str,
-        author_id:    str         = "",
-        model:        str | None  = None,
+        content_id: str,
+        content: str,
+        author_id: str = "",
+        model: str | None = None,
         content_type: ContentType = "comment",
     ) -> ModerationResult:
         """Analyse a single comment or post."""
@@ -134,8 +135,8 @@ class ModerationService:
 
     async def moderate_batch(
         self,
-        items:        list[dict[str, str]],
-        model:        str | None  = None,
+        items: list[dict[str, str]],
+        model: str | None = None,
         content_type: ContentType = "comment",
     ) -> list[ModerationResult]:
         """
@@ -155,6 +156,7 @@ class ModerationService:
         trigger rate limiting and the same 50 items take 5-10s with
         retry overhead — slower AND more expensive.
         """
+
         async def _bounded(item: dict[str, str]) -> ModerationResult:
             async with self._llm_semaphore:
                 return await self.moderate(

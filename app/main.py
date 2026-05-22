@@ -13,6 +13,7 @@ Endpoints:
     GET  /health              — liveness + integration status
     GET  /docs                — Swagger UI
 """
+
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -33,11 +34,15 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    logger.info("Moderator starting  model=%s  remove_threshold=%.2f  review_threshold=%.2f",
-                settings.moderator_model, settings.remove_threshold, settings.review_threshold)
+    logger.info(
+        "Moderator starting  model=%s  remove_threshold=%.2f  review_threshold=%.2f",
+        settings.moderator_model,
+        settings.remove_threshold,
+        settings.review_threshold,
+    )
     configured = "configured"
-    not_set    = "NOT SET — /scan/trigger will fail"
-    logger.info("MongoDB:    %s", configured if settings.mongodb_uri    else not_set)
+    not_set = "NOT SET — /scan/trigger will fail"
+    logger.info("MongoDB:    %s", configured if settings.mongodb_uri else not_set)
     logger.info("Laravel DB: %s", configured if settings.laravel_db_url else not_set)
     yield
     await close_mongo()
@@ -72,13 +77,13 @@ app.include_router(router)
 async def health() -> dict:
     return {
         "status": "ok",
-        "model":  settings.moderator_model,
+        "model": settings.moderator_model,
         "thresholds": {
             "remove": settings.remove_threshold,
             "review": settings.review_threshold,
         },
         "integrations": {
-            "mongodb":    bool(settings.mongodb_uri),
+            "mongodb": bool(settings.mongodb_uri),
             "laravel_db": bool(settings.laravel_db_url),
         },
     }

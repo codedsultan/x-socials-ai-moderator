@@ -6,6 +6,7 @@ Moderation backend backed by Anthropic's Claude API.
 This is the original Claude logic, refactored into the ModerationBackend
 protocol so it's swappable like any other backend.
 """
+
 from __future__ import annotations
 
 import json
@@ -31,7 +32,7 @@ class AnthropicBackend(ModerationBackend):
     """
 
     def __init__(self, model: str | None = None) -> None:
-        self._model  = model or settings.moderator_model
+        self._model = model or settings.moderator_model
         self._client: anthropic.AsyncAnthropic | None = None
 
     @property
@@ -42,10 +43,10 @@ class AnthropicBackend(ModerationBackend):
 
     async def analyse(
         self,
-        content_id:   str,
-        content:      str,
+        content_id: str,
+        content: str,
         content_type: ContentType = "comment",
-        author_id:    str         = "",
+        author_id: str = "",
     ) -> ModerationResult:
         try:
             raw = await self._call_claude(content, content_type)
@@ -57,8 +58,8 @@ class AnthropicBackend(ModerationBackend):
     # ── Internals ─────────────────────────────────────────────────────────────
 
     async def _call_claude(self, content: str, content_type: ContentType) -> dict[str, Any]:
-        system  = POST_PROMPT if content_type == "post" else COMMENT_PROMPT
-        label   = "Post" if content_type == "post" else "Comment"
+        system = POST_PROMPT if content_type == "post" else COMMENT_PROMPT
+        label = "Post" if content_type == "post" else "Comment"
         message = f"{label} to moderate:\n\n{content}"
 
         response = await self.client.messages.create(
@@ -78,12 +79,12 @@ class AnthropicBackend(ModerationBackend):
             raise ValueError(f"Claude returned invalid JSON: {text[:200]}") from exc
 
     def _parse(self, content_id: str, raw: dict[str, Any]) -> ModerationResult:
-        is_problematic  = bool(raw.get("is_problematic", False))
-        confidence      = float(raw.get("confidence", 0.0))
-        categories      = raw.get("categories", [])
-        explanation     = raw.get("explanation", "No explanation provided.")
+        is_problematic = bool(raw.get("is_problematic", False))
+        confidence = float(raw.get("confidence", 0.0))
+        categories = raw.get("categories", [])
+        explanation = raw.get("explanation", "No explanation provided.")
         flagged_phrases = raw.get("flagged_phrases", [])
-        verdict         = self._verdict(is_problematic, confidence)
+        verdict = self._verdict(is_problematic, confidence)
 
         return ModerationResult(
             id=content_id,

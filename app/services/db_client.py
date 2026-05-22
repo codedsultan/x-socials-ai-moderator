@@ -1,5 +1,5 @@
 """
-db_client.py 
+db_client.py
 
 Manages async connections to:
   - MongoDB  (read-only)  — Node.js comment/post data
@@ -13,6 +13,7 @@ Credentials are scoped conservatively:
   Laravel DB: INSERT on moderation_records, INSERT/UPDATE on moderation_queue,
               UPDATE on scan_runs — no access to admin_users or admin_action_logs
 """
+
 from __future__ import annotations
 
 import logging
@@ -35,7 +36,7 @@ logger = logging.getLogger(__name__)
 # ── MongoDB ───────────────────────────────────────────────────────────────────
 
 _mongo_client: AsyncIOMotorClient | None = None
-_mongo_db:     AsyncIOMotorDatabase | None = None
+_mongo_db: AsyncIOMotorDatabase | None = None
 
 
 def get_mongo_db() -> AsyncIOMotorDatabase:
@@ -61,12 +62,12 @@ async def close_mongo() -> None:
     if _mongo_client is not None:
         _mongo_client.close()
         _mongo_client = None
-        _mongo_db     = None
+        _mongo_db = None
 
 
 # ── Laravel DB (SQLAlchemy async) ─────────────────────────────────────────────
 
-_engine:          AsyncEngine | None = None
+_engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker | None = None
 
 
@@ -82,14 +83,12 @@ def get_session_factory() -> async_sessionmaker:
             settings.laravel_db_url,
             echo=False,
             # pool_pre_ping=True,
-            pool_pre_ping=False, 
+            pool_pre_ping=False,
             pool_recycle=3600,
             pool_size=5,
             max_overflow=10,
         )
-        _session_factory = async_sessionmaker(
-            _engine, class_=AsyncSession, expire_on_commit=False
-        )
+        _session_factory = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
         logger.info("Laravel DB connection pool ready (pool_pre_ping=True)")
     return _session_factory
 
@@ -98,27 +97,28 @@ async def close_laravel_db() -> None:
     global _engine, _session_factory
     if _engine is not None:
         await _engine.dispose()
-        _engine          = None
+        _engine = None
         _session_factory = None
 
 
 # ── Laravel DB write helpers ───────────────────────────────────────────────────
 
+
 async def insert_moderation_record(
-    session:         AsyncSession,
-    comment_id:      str | None,
-    post_id:         str,
-    content_type:    str,
-    content_id:      str,
-    author_id:       str,
-    content:         str,
-    verdict:         str,
-    confidence_pct:  int,
-    categories:      list[str],
-    explanation:     str,
+    session: AsyncSession,
+    comment_id: str | None,
+    post_id: str,
+    content_type: str,
+    content_id: str,
+    author_id: str,
+    content: str,
+    verdict: str,
+    confidence_pct: int,
+    categories: list[str],
+    explanation: str,
     flagged_phrases: list[str],
-    model:           str,
-    trigger:         str,
+    model: str,
+    trigger: str,
 ) -> int | None:
     """
     Insert a row into moderation_records.
@@ -131,6 +131,7 @@ async def insert_moderation_record(
     a duplicate and was ignored.
     """
     import json as _json
+
     result = await session.execute(
         text("""
             INSERT IGNORE INTO moderation_records
@@ -145,20 +146,20 @@ async def insert_moderation_record(
                  :model, :trigger, :now, :now)
         """),
         {
-            "comment_id":      comment_id,
-            "post_id":         post_id,
-            "content_type":    content_type,
-            "content_id":      content_id,
-            "author_id":       author_id,
-            "content":         content,
-            "verdict":         verdict,
-            "confidence_pct":  confidence_pct,
-            "categories":      _json.dumps(categories),
-            "explanation":     explanation,
+            "comment_id": comment_id,
+            "post_id": post_id,
+            "content_type": content_type,
+            "content_id": content_id,
+            "author_id": author_id,
+            "content": content,
+            "verdict": verdict,
+            "confidence_pct": confidence_pct,
+            "categories": _json.dumps(categories),
+            "explanation": explanation,
             "flagged_phrases": _json.dumps(flagged_phrases),
-            "model":           model,
-            "trigger":         trigger,
-            "now":             _now(),
+            "model": model,
+            "trigger": trigger,
+            "now": _now(),
         },
     )
     # lastrowid is 0 when INSERT IGNORE skips a duplicate
@@ -167,17 +168,17 @@ async def insert_moderation_record(
 
 
 async def upsert_moderation_queue(
-    session:              AsyncSession,
-    comment_id:           str | None,
-    post_id:              str,
-    content_type:         str,
-    content_id:           str,
-    author_id:            str,
-    content:              str,
-    verdict:              str,
-    confidence_pct:       int,
-    explanation:          str,
-    flagged_phrases:      list[str],
+    session: AsyncSession,
+    comment_id: str | None,
+    post_id: str,
+    content_type: str,
+    content_id: str,
+    author_id: str,
+    content: str,
+    verdict: str,
+    confidence_pct: int,
+    explanation: str,
+    flagged_phrases: list[str],
     moderation_record_id: int,
 ) -> None:
     """
@@ -185,6 +186,7 @@ async def upsert_moderation_queue(
     Unique constraint is on (content_id, content_type).
     """
     import json as _json
+
     now = _now()
 
     dialect = _engine.url.get_dialect().name if _engine else "sqlite"
@@ -216,18 +218,18 @@ async def upsert_moderation_queue(
                     updated_at           = excluded.updated_at
             """),
             {
-                "comment_id":      comment_id,
-                "post_id":         post_id,
-                "content_type":    content_type,
-                "content_id":      content_id,
-                "author_id":       author_id,
-                "content":         content,
-                "verdict":         verdict,
-                "confidence_pct":  confidence_pct,
-                "explanation":     explanation,
+                "comment_id": comment_id,
+                "post_id": post_id,
+                "content_type": content_type,
+                "content_id": content_id,
+                "author_id": author_id,
+                "content": content,
+                "verdict": verdict,
+                "confidence_pct": confidence_pct,
+                "explanation": explanation,
                 "flagged_phrases": _json.dumps(flagged_phrases),
-                "record_id":       moderation_record_id,
-                "now":             now,
+                "record_id": moderation_record_id,
+                "now": now,
             },
         )
     else:
@@ -258,18 +260,18 @@ async def upsert_moderation_queue(
                     updated_at           = VALUES(updated_at)
             """),
             {
-                "comment_id":      comment_id,
-                "post_id":         post_id,
-                "content_type":    content_type,
-                "content_id":      content_id,
-                "author_id":       author_id,
-                "content":         content,
-                "verdict":         verdict,
-                "confidence_pct":  confidence_pct,
-                "explanation":     explanation,
+                "comment_id": comment_id,
+                "post_id": post_id,
+                "content_type": content_type,
+                "content_id": content_id,
+                "author_id": author_id,
+                "content": content,
+                "verdict": verdict,
+                "confidence_pct": confidence_pct,
+                "explanation": explanation,
                 "flagged_phrases": _json.dumps(flagged_phrases),
-                "record_id":       moderation_record_id,
-                "now":             now,
+                "record_id": moderation_record_id,
+                "now": now,
             },
         )
 
@@ -300,13 +302,13 @@ async def complete_scan_run(session: AsyncSession, run_id: int, counts: dict[str
             WHERE id = :id
         """),
         {
-            "id":       run_id,
-            "posts":    counts.get("posts_scanned", 0),
+            "id": run_id,
+            "posts": counts.get("posts_scanned", 0),
             "comments": counts.get("comments_scanned", 0),
-            "flagged":  counts.get("flagged", 0),
-            "review":   counts.get("queued_for_review", 0),
-            "safe":     counts.get("safe", 0),
-            "now":      _now(),
+            "flagged": counts.get("flagged", 0),
+            "review": counts.get("queued_for_review", 0),
+            "safe": counts.get("safe", 0),
+            "now": _now(),
         },
     )
 

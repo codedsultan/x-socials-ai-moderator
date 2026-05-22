@@ -22,6 +22,7 @@ Changes:
                        p95 is the most useful single number: it tells you what
                        a typical 'slow' analysis looks like, excluding outliers.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -51,10 +52,11 @@ class QueueStats:
     recent_latencies is a rolling window of the last 100 wall-clock
     processing times (seconds from enqueue to DB commit).
     """
-    enqueued_total:   int   = 0
-    completed_total:  int   = 0
-    failed_total:     int   = 0
-    skipped_total:    int   = 0
+
+    enqueued_total: int = 0
+    completed_total: int = 0
+    failed_total: int = 0
+    skipped_total: int = 0
     recent_latencies: deque = field(default_factory=lambda: deque(maxlen=100))
 
     def avg_latency_ms(self) -> int:
@@ -86,13 +88,13 @@ class QueueStats:
 
     def to_dict(self) -> dict:
         return {
-            "enqueued_total":  self.enqueued_total,
+            "enqueued_total": self.enqueued_total,
             "completed_total": self.completed_total,
-            "failed_total":    self.failed_total,
-            "skipped_total":   self.skipped_total,
-            "avg_latency_ms":  self.avg_latency_ms(),
-            "p95_latency_ms":  self.p95_latency_ms(),
-            "health_pct":      self.health_pct(),
+            "failed_total": self.failed_total,
+            "skipped_total": self.skipped_total,
+            "avg_latency_ms": self.avg_latency_ms(),
+            "p95_latency_ms": self.p95_latency_ms(),
+            "health_pct": self.health_pct(),
         }
 
 
@@ -123,11 +125,11 @@ class RealtimeQueue:
 
     def enqueue(
         self,
-        content_id:   str,
-        content:      str,
-        author_id:    str,
+        content_id: str,
+        content: str,
+        author_id: str,
         content_type: ContentType,
-        post_id:      str | None = None,
+        post_id: str | None = None,
     ) -> None:
         """
         Non-blocking enqueue. Returns immediately after creating the asyncio Task.
@@ -138,9 +140,7 @@ class RealtimeQueue:
         self._stats.enqueued_total += 1
 
         task = asyncio.create_task(
-            self._process_one(
-                content_id, content, author_id, content_type, post_id, enqueued_at
-            ),
+            self._process_one(content_id, content, author_id, content_type, post_id, enqueued_at),
             name=f"realtime_{content_type}_{content_id[:8]}",
         )
         self._active_tasks.add(task)
@@ -149,7 +149,8 @@ class RealtimeQueue:
 
         logger.debug(
             "RealtimeQueue: enqueued %s %s (depth=%d, total=%d)",
-            content_type, content_id[:12],
+            content_type,
+            content_id[:12],
             len(self._active_tasks),
             self._stats.enqueued_total,
         )
@@ -158,67 +159,67 @@ class RealtimeQueue:
 
     async def _process_one(
         self,
-        content_id:   str,
-        content:      str,
-        author_id:    str,
+        content_id: str,
+        content: str,
+        author_id: str,
         content_type: ContentType,
-        post_id:      str | None,
-        enqueued_at:  float,
+        post_id: str | None,
+        enqueued_at: float,
     ) -> None:
         """Analyse one item and write results to MySQL. Records stats on every exit path."""
         async with self._semaphore:
             try:
                 result = await moderation_service.moderate(
-                    content_id   = content_id,
-                    content      = content,
-                    author_id    = author_id,
-                    content_type = content_type,
+                    content_id=content_id,
+                    content=content,
+                    author_id=author_id,
+                    content_type=content_type,
                 )
 
                 factory = get_session_factory()
                 async with factory() as session:
                     record_id = await insert_moderation_record(
-                        session        = session,
-                        comment_id     = content_id if content_type == "comment" else None,
-                        post_id        = post_id or content_id,
-                        content_type   = content_type,
-                        content_id     = content_id,
-                        author_id      = author_id,
-                        content        = content,
-                        verdict        = result.verdict,
-                        confidence_pct = int(round(result.confidence * 100)),
-                        categories     = result.categories,
-                        explanation    = result.explanation,
-                        flagged_phrases= result.flaggedPhrases,
-                        model          = (
+                        session=session,
+                        comment_id=content_id if content_type == "comment" else None,
+                        post_id=post_id or content_id,
+                        content_type=content_type,
+                        content_id=content_id,
+                        author_id=author_id,
+                        content=content,
+                        verdict=result.verdict,
+                        confidence_pct=int(round(result.confidence * 100)),
+                        categories=result.categories,
+                        explanation=result.explanation,
+                        flagged_phrases=result.flaggedPhrases,
+                        model=(
                             settings.openrouter_model
                             if settings.moderation_mode in ("openrouter", "hybrid")
                             else settings.moderator_model
                         ),
-                        trigger        = "realtime",
+                        trigger="realtime",
                     )
 
                     if record_id and result.verdict in ("review", "remove"):
                         await upsert_moderation_queue(
-                            session              = session,
-                            comment_id           = (
-                                content_id if content_type == "comment" else None
-                            ),
-                            post_id              = post_id or content_id,
-                            content_type         = content_type,
-                            content_id           = content_id,
-                            author_id            = author_id,
-                            content              = content,
-                            verdict              = result.verdict,
-                            confidence_pct       = int(round(result.confidence * 100)),
-                            explanation          = result.explanation,
-                            flagged_phrases      = result.flaggedPhrases,
-                            moderation_record_id = record_id,
+                            session=session,
+                            comment_id=(content_id if content_type == "comment" else None),
+                            post_id=post_id or content_id,
+                            content_type=content_type,
+                            content_id=content_id,
+                            author_id=author_id,
+                            content=content,
+                            verdict=result.verdict,
+                            confidence_pct=int(round(result.confidence * 100)),
+                            explanation=result.explanation,
+                            flagged_phrases=result.flaggedPhrases,
+                            moderation_record_id=record_id,
                         )
                         logger.info(
                             "RealtimeQueue: %s %s → %s (%.0f%%)",
-                            content_type, content_id[:12],
-                            result.verdict, result.confidence * 100,
+                            content_type,
+                            content_id[:12],
+                            result.verdict,
+                            result.confidence * 100,
                         )
 
                     await session.commit()
@@ -231,21 +232,26 @@ class RealtimeQueue:
                     self._stats.skipped_total += 1
                     logger.debug(
                         "RealtimeQueue: %s %s already analysed today — skipped",
-                        content_type, content_id[:12],
+                        content_type,
+                        content_id[:12],
                     )
                 else:
                     self._stats.completed_total += 1
                     self._stats.recent_latencies.append(elapsed)
                     logger.debug(
                         "RealtimeQueue: %s %s completed in %.0fms",
-                        content_type, content_id[:12], elapsed * 1000,
+                        content_type,
+                        content_id[:12],
+                        elapsed * 1000,
                     )
 
             except Exception as exc:
                 self._stats.failed_total += 1
                 logger.error(
                     "RealtimeQueue: error processing %s %s: %s",
-                    content_type, content_id[:12], exc,
+                    content_type,
+                    content_id[:12],
+                    exc,
                     exc_info=False,
                 )
 

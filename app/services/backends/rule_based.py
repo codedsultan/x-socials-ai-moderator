@@ -17,6 +17,7 @@ Fallback: if detoxify or torch is not installed the backend logs a warning
 and always returns verdict="safe" with confidence=0.0 so the rest of the
 pipeline keeps running (useful in CI / lightweight deployments).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -31,12 +32,12 @@ logger = logging.getLogger(__name__)
 
 # Map detoxify keys → our schema category names
 _CATEGORY_MAP: dict[str, str] = {
-    "toxicity":           "toxicity",
-    "severe_toxicity":    "hate_speech",
-    "obscene":            "adult_content",
-    "threat":             "violence",
-    "insult":             "harassment",
-    "identity_attack":    "hate_speech",
+    "toxicity": "toxicity",
+    "severe_toxicity": "hate_speech",
+    "obscene": "adult_content",
+    "threat": "violence",
+    "insult": "harassment",
+    "identity_attack": "hate_speech",
 }
 
 
@@ -45,6 +46,7 @@ def _load_model() -> Any | None:
     """Load detoxify once and cache it for the process lifetime."""
     try:
         from detoxify import Detoxify  # type: ignore
+
         model = Detoxify("original")
         logger.info("RuleBasedBackend: detoxify model loaded")
         return model
@@ -70,10 +72,10 @@ class RuleBasedBackend(ModerationBackend):
 
     async def analyse(
         self,
-        content_id:   str,
-        content:      str,
+        content_id: str,
+        content: str,
         content_type: ContentType = "comment",
-        author_id:    str         = "",
+        author_id: str = "",
     ) -> ModerationResult:
         try:
             if self._model is None:
@@ -86,11 +88,11 @@ class RuleBasedBackend(ModerationBackend):
                 )
 
             # Run the CPU-bound inference in a thread pool
-            loop   = asyncio.get_event_loop()
+            loop = asyncio.get_event_loop()
             scores = await loop.run_in_executor(None, self._model.predict, content)
 
             # scores = {"toxicity": 0.03, "severe_toxicity": 0.00, ...}
-            confidence    = float(max(scores.values()))
+            confidence = float(max(scores.values()))
             is_problematic = confidence >= 0.30  # lower bar — let the verdict thresholds decide
 
             # Collect categories where score exceeds a meaningful signal threshold
@@ -125,5 +127,5 @@ class RuleBasedBackend(ModerationBackend):
         if not categories:
             return "No policy violations detected by local classifier."
         cat_str = ", ".join(categories)
-        pct     = int(round(confidence * 100))
+        pct = int(round(confidence * 100))
         return f"Local classifier flagged: {cat_str} (confidence {pct}%)."
