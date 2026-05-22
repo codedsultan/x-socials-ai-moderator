@@ -57,7 +57,7 @@ jobs:
           # ── App env ──────────────────────────────────────────────
           APP_ENV:    testing
           DEBUG:      "true"
-          SECRET_KEY: test-secret-key
+          # SECRET_KEY: test-secret-key
           LOG_LEVEL:  DEBUG
           LOG_JSON:   "false"
 
