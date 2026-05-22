@@ -46,8 +46,8 @@ from openai import AsyncOpenAI
 
 from app.models.schemas import ContentType, ModerationResult
 from app.models.settings import settings
-from app.services.backends.base import ModerationBackend
 from app.services.backends._prompts import COMMENT_PROMPT, POST_PROMPT
+from app.services.backends.base import ModerationBackend
 
 logger = logging.getLogger(__name__)
 

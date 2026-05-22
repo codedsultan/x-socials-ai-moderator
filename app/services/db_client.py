@@ -16,17 +16,16 @@ Credentials are scoped conservatively:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy import text
 
 from app.models.settings import settings
 
@@ -163,7 +162,7 @@ async def insert_moderation_record(
         },
     )
     # lastrowid is 0 when INSERT IGNORE skips a duplicate
-    row_id = result.lastrowid
+    row_id = result.lastrowid  # type: ignore[attr-defined]
     return row_id if row_id else None
 
 
@@ -277,11 +276,14 @@ async def upsert_moderation_queue(
 
 async def create_scan_run(session: AsyncSession) -> int:
     result = await session.execute(
-        text("INSERT INTO scan_runs (status, posts_scanned, comments_scanned, flagged, queued_for_review, safe, started_at) "
-             "VALUES ('running', 0, 0, 0, 0, 0, :now)"),
+        text(
+            "INSERT INTO scan_runs (status, posts_scanned, comments_scanned,"
+            " flagged, queued_for_review, safe, started_at)"
+            " VALUES ('running', 0, 0, 0, 0, 0, :now)"
+        ),
         {"now": _now()},
     )
-    return result.lastrowid
+    return result.lastrowid  # type: ignore[attr-defined]
 
 
 async def complete_scan_run(session: AsyncSession, run_id: int, counts: dict[str, int]) -> None:
@@ -311,10 +313,13 @@ async def complete_scan_run(session: AsyncSession, run_id: int, counts: dict[str
 
 async def fail_scan_run(session: AsyncSession, run_id: int, error: str) -> None:
     await session.execute(
-        text("UPDATE scan_runs SET status='failed', error_message=:err, finished_at=:now WHERE id=:id"),
+        text(
+            "UPDATE scan_runs SET status='failed', error_message=:err, finished_at=:now"
+            " WHERE id=:id"
+        ),
         {"id": run_id, "err": error[:1000], "now": _now()},
     )
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")

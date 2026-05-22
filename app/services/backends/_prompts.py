@@ -10,7 +10,10 @@ JSON schema (respond with ONLY this, no preamble, no markdown):
 {
   "is_problematic": boolean,
   "confidence": float (0.0–1.0),
-  "categories": array of strings from: ["spam", "hate_speech", "harassment", "misinformation", "adult_content", "violence", "self_harm", "off_topic"],
+  "categories": array of strings from: [
+    "spam", "hate_speech", "harassment", "misinformation",
+    "adult_content", "violence", "self_harm", "off_topic"
+  ],
   "explanation": string (one concise sentence),
   "flagged_phrases": array of exact verbatim substrings that are problematic (empty if none)
 }

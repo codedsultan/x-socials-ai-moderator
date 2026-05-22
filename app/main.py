@@ -13,15 +13,16 @@ Endpoints:
     GET  /health              — liveness + integration status
     GET  /docs                — Swagger UI
 """
-from contextlib import asynccontextmanager
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
 from app.models.settings import settings
-from app.services.db_client import close_mongo, close_laravel_db
+from app.services.db_client import close_laravel_db, close_mongo
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,11 +32,13 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Moderator starting  model=%s  remove_threshold=%.2f  review_threshold=%.2f",
                 settings.moderator_model, settings.remove_threshold, settings.review_threshold)
-    logger.info("MongoDB:    %s", "configured" if settings.mongodb_uri   else "NOT SET — /scan/trigger will fail")
-    logger.info("Laravel DB: %s", "configured" if settings.laravel_db_url else "NOT SET — /scan/trigger will fail")
+    configured = "configured"
+    not_set    = "NOT SET — /scan/trigger will fail"
+    logger.info("MongoDB:    %s", configured if settings.mongodb_uri    else not_set)
+    logger.info("Laravel DB: %s", configured if settings.laravel_db_url else not_set)
     yield
     await close_mongo()
     await close_laravel_db()

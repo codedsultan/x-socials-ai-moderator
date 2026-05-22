@@ -16,8 +16,8 @@ import anthropic
 
 from app.models.schemas import ContentType, ModerationResult
 from app.models.settings import settings
-from app.services.backends.base import ModerationBackend
 from app.services.backends._prompts import COMMENT_PROMPT, POST_PROMPT
+from app.services.backends.base import ModerationBackend
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,8 @@ class AnthropicBackend(ModerationBackend):
             messages=[{"role": "user", "content": message}],
         )
 
-        text = response.content[0].text if response.content else ""
+        first = response.content[0] if response.content else None
+        text = first.text if isinstance(first, anthropic.types.TextBlock) else ""
         text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
 
         try:

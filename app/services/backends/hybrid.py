@@ -57,8 +57,12 @@ class HybridBackend(ModerationBackend):
     ) -> None:
         self._fast        = fast
         self._smart       = smart
-        self._safe_ceil   = safe_ceiling if safe_ceiling is not None else settings.hybrid_safe_ceiling
-        self._flag_floor  = flag_floor   if flag_floor   is not None else settings.hybrid_flag_floor
+        self._safe_ceil = (
+            safe_ceiling if safe_ceiling is not None else settings.hybrid_safe_ceiling
+        )
+        self._flag_floor = (
+            flag_floor if flag_floor is not None else settings.hybrid_flag_floor
+        )
 
     async def analyse(
         self,
@@ -87,7 +91,9 @@ class HybridBackend(ModerationBackend):
 
         # Unambiguously problematic
         if confidence >= self._flag_floor:
-            logger.debug("HybridBackend: %s skipped LLM (flagged, conf=%.3f)", content_id, confidence)
+            logger.debug(
+                "HybridBackend: %s skipped LLM (flagged, conf=%.3f)", content_id, confidence
+            )
             return fast_result
 
         # ── Stage 2: ambiguous — escalate to LLM ─────────────────────────────

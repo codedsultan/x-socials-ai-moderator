@@ -6,7 +6,8 @@ LLM moderation backend for any OpenAI-compatible API.
 One client, zero lock-in.  Point it at:
   - OpenAI:     base_url=https://api.openai.com/v1        model=gpt-4o-mini
   - Groq:       base_url=https://api.groq.com/openai/v1   model=llama-3.1-8b-instant
-  - Together:   base_url=https://api.together.xyz/v1       model=meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo
+  - Together:   base_url=https://api.together.xyz/v1
+                model=meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo
   - Mistral:    base_url=https://api.mistral.ai/v1         model=mistral-small-latest
   - Ollama:     base_url=http://localhost:11434/v1         model=llama3.2   api_key=ollama
   - LM Studio:  base_url=http://localhost:1234/v1          model=<loaded>   api_key=lm-studio
@@ -23,8 +24,8 @@ from typing import Any
 from openai import AsyncOpenAI
 
 from app.models.schemas import ContentType, ModerationResult
-from app.services.backends.base import ModerationBackend
 from app.services.backends._prompts import COMMENT_PROMPT, POST_PROMPT
+from app.services.backends.base import ModerationBackend
 
 logger = logging.getLogger(__name__)
 

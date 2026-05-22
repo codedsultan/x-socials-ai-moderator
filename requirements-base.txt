@@ -1,32 +1,32 @@
 # ── Web framework ─────────────────────────────────────────────────────────────
-fastapi==0.115.5
-uvicorn[standard]==0.32.1
-pydantic==2.10.3
-pydantic-settings==2.6.1
-httpx==0.28.1
-python-dotenv==1.0.1
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+httpx
+python-dotenv
 
 # ── Databases ─────────────────────────────────────────────────────────────────
-motor==3.6.0
-pymongo==4.10.1
-sqlalchemy==2.0.36
-aiomysql==0.2.0
-aiosqlite==0.20.0
+motor
+pymongo
+sqlalchemy
+aiomysql
+aiosqlite
 
 # ── Moderation backends ───────────────────────────────────────────────────────
 # Anthropic (Claude) — optional; required when MODERATION_MODE=anthropic|hybrid
-anthropic==0.40.0
+anthropic
 
 # OpenAI-compatible — covers OpenAI, Groq, Together AI, Mistral, Ollama, LM Studio
 # Required when MODERATION_MODE=openai|ollama|hybrid (with hybrid_smart_backend=openai|ollama)
-openai>=1.35.0
+openai
 
 # Local rule-based classifier (detoxify + PyTorch)
 # Required when MODERATION_MODE=rule|hybrid
 # Weights (~200 MB) are downloaded on first use and cached in ~/.cache/huggingface
 # Comment out for a lightweight deployment that uses LLM-only mode
-detoxify>=0.5.2
+detoxify
 
 # ── Testing ───────────────────────────────────────────────────────────────────
-pytest==8.3.3
-pytest-asyncio==0.24.0
+# pytest
+# pytest-asyncio

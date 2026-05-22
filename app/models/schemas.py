@@ -9,7 +9,9 @@ New types:
 ScanTriggerRequest extended with mode field.
 """
 from __future__ import annotations
+
 from typing import Literal
+
 from pydantic import BaseModel, Field
 
 ContentType = Literal["comment", "post"]

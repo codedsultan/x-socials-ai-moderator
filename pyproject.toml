@@ -1,0 +1,29 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# E501 (line too long) is enforced by line-length = 100 above.
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+disallow_untyped_defs = true
+exclude = ["migrations/"]
+
+[tool.pytest.ini_options]
+# asyncio_mode = "auto" means every async test runs without @pytest.mark.asyncio.
+# Matches the former pytest.ini — delete pytest.ini from the repo root.
+asyncio_mode = "auto"
+# Tests live at app/tests/ — must match actual location, not top-level tests/
+testpaths = ["app/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

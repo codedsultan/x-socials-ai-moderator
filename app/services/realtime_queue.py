@@ -32,12 +32,12 @@ from dataclasses import dataclass, field
 
 from app.models.schemas import ContentType
 from app.models.settings import settings
-from app.services.moderation_service import moderation_service
 from app.services.db_client import (
     get_session_factory,
     insert_moderation_record,
     upsert_moderation_queue,
 )
+from app.services.moderation_service import moderation_service
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +201,9 @@ class RealtimeQueue:
                     if record_id and result.verdict in ("review", "remove"):
                         await upsert_moderation_queue(
                             session              = session,
-                            comment_id           = content_id if content_type == "comment" else None,
+                            comment_id           = (
+                                content_id if content_type == "comment" else None
+                            ),
                             post_id              = post_id or content_id,
                             content_type         = content_type,
                             content_id           = content_id,

@@ -14,7 +14,9 @@ New settings:
                               window and runs daily to catch webhook-missed items.
 """
 from __future__ import annotations
+
 from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

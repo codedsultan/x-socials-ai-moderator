@@ -16,22 +16,23 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
+
+from sqlalchemy import text
 
 from app.models.schemas import ContentType
 from app.models.settings import settings
-from app.services.moderation_service import moderation_service
 from app.services.db_client import (
+    complete_scan_run,
+    create_scan_run,
+    fail_scan_run,
     get_mongo_db,
     get_session_factory,
     insert_moderation_record,
     upsert_moderation_queue,
-    create_scan_run,
-    complete_scan_run,
-    fail_scan_run,
 )
-from sqlalchemy import text
+from app.services.moderation_service import moderation_service
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +118,7 @@ class ScanService:
             if post_id:
                 post_ids = [post_id]
             else:
-                cutoff = datetime.now(timezone.utc) - timedelta(hours=lookback_h)
+                cutoff = datetime.now(UTC) - timedelta(hours=lookback_h)
                 unique_post_ids: set[str] = set()
 
                 comment_cursor = db.comments.find(
@@ -276,9 +277,12 @@ class ScanService:
                     moderation_record_id=record_id,
                 )
 
-            if result.verdict == "remove":   counts["flagged"] += 1
-            elif result.verdict == "review": counts["review"]  += 1
-            else:                            counts["safe"]    += 1
+            if result.verdict == "remove":
+                counts["flagged"] += 1
+            elif result.verdict == "review":
+                counts["review"] += 1
+            else:
+                counts["safe"] += 1
 
             await session.commit()
 
@@ -333,7 +337,7 @@ class ScanService:
         if not ids:
             return set()
 
-        today_start = datetime.now(timezone.utc).replace(
+        today_start = datetime.now(UTC).replace(
             hour=0, minute=0, second=0, microsecond=0
         ).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -400,9 +404,12 @@ class ScanService:
                         moderation_record_id=record_id,
                     )
 
-                if result.verdict == "remove":   stats["flagged"] += 1
-                elif result.verdict == "review": stats["review"]  += 1
-                else:                            stats["safe"]    += 1
+                if result.verdict == "remove":
+                    stats["flagged"] += 1
+                elif result.verdict == "review":
+                    stats["review"] += 1
+                else:
+                    stats["safe"] += 1
 
             await session.commit()
 

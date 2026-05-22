@@ -9,9 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
 
 from app.models.schemas import (
-    CommentRequest,
     BatchModerationRequest,
     BatchModerationResponse,
+    CommentRequest,
     EnqueueRequest,
     EnqueueResponse,
     ModerationResult,
@@ -20,8 +20,8 @@ from app.models.schemas import (
 )
 from app.models.settings import settings
 from app.services.moderation_service import moderation_service
-from app.services.scan_service import scan_service
 from app.services.realtime_queue import realtime_queue
+from app.services.scan_service import scan_service
 
 router = APIRouter(tags=["moderation"])
 
@@ -167,4 +167,4 @@ async def trigger_scan(
             message     = f"Scan started for {scope}{ct} mode={body.mode} (run_id={run_id})",
         )
     except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc

@@ -19,18 +19,20 @@ import logging
 
 from app.models.schemas import ContentType, ModerationResult
 from app.models.settings import settings
+from app.services.backends.anthropic_backend import AnthropicBackend
 from app.services.backends.base import ModerationBackend
+from app.services.backends.openrouter_backend import OpenRouterBackend
 
 logger = logging.getLogger(__name__)
 
 
 def _build_backend() -> ModerationBackend:
     """Factory — reads settings and wires up the right backend graph."""
-    from app.services.backends.rule_based import RuleBasedBackend
     from app.services.backends.anthropic_backend import AnthropicBackend
+    from app.services.backends.hybrid import HybridBackend
     from app.services.backends.openai_compat import OpenAICompatBackend
     from app.services.backends.openrouter_backend import OpenRouterBackend
-    from app.services.backends.hybrid import HybridBackend
+    from app.services.backends.rule_based import RuleBasedBackend
 
     mode = settings.moderation_mode
     logger.info("Building moderation backend: mode=%s", mode)
@@ -176,18 +178,15 @@ class ModerationService:
         direct SDK access (supports prompt caching on future upgrade).
         """
         if "/" in model:
-            from app.services.backends.openrouter_backend import OpenRouterBackend
             return OpenRouterBackend(model=model)
-        from app.services.backends.anthropic_backend import AnthropicBackend
         return AnthropicBackend(model=model)
 
     # ── Legacy compat (tests patch these directly) ────────────────────────────
 
     def _parse(self, content_id: str, raw: dict) -> ModerationResult:
-        from app.services.backends.anthropic_backend import AnthropicBackend
         return AnthropicBackend()._parse(content_id, raw)
 
-    def _verdict(self, is_problematic: bool, confidence: float):
+    def _verdict(self, is_problematic: bool, confidence: float) -> str:
         return self._backend._verdict(is_problematic, confidence)
 
 
