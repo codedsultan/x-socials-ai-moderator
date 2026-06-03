@@ -33,7 +33,9 @@ from app.services.db_client import (
     insert_moderation_record,
     upsert_moderation_queue,
 )
-from app.services.moderation_service import moderation_service
+
+# from app.services.moderation_service import moderation_service
+from app.services.moderation_service import get_moderation_service
 
 logger = logging.getLogger(__name__)
 

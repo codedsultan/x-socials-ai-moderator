@@ -20,7 +20,10 @@ from app.models.schemas import (
     ScanTriggerResponse,
 )
 from app.models.settings import settings
-from app.services.moderation_service import moderation_service
+
+# from app.services.moderation_service import moderation_service
+from app.services.moderation_service import get_moderation_service
+from app.services.moderation_service import ModerationService
 from app.services.realtime_queue import realtime_queue
 from app.services.scan_service import scan_service
 
@@ -110,8 +113,10 @@ async def moderate_single(
     body: CommentRequest,
     force_model: str | None = None,
     _: None = Depends(verify_api_key),
+    svc: ModerationService = Depends(get_moderation_service),
 ) -> ModerationResult:
-    return await moderation_service.moderate(
+    return await svc.moderate(
+        # return await moderation_service.moderate(
         content_id=body.id,
         content=body.content,
         author_id=body.authorId,
@@ -128,9 +133,11 @@ async def moderate_single(
 async def moderate_batch(
     body: BatchModerationRequest,
     _: None = Depends(verify_api_key),
+    svc: ModerationService = Depends(get_moderation_service),
 ) -> BatchModerationResponse:
     comments = [c.model_dump(by_alias=True) for c in body.comments]
-    results = await moderation_service.moderate_batch(comments)
+    # results = await moderation_service.moderate_batch(comments)
+    results = await svc.moderate_batch(comments)
 
     return BatchModerationResponse(
         results=results,

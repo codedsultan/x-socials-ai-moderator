@@ -193,4 +193,13 @@ class ModerationService:
 
 
 # Singleton — created once at import time; backend is wired from settings.
-moderation_service = ModerationService()
+# moderation_service = ModerationService()
+# use lazy getter:
+_moderation_service: ModerationService | None = None
+
+
+def get_moderation_service() -> ModerationService:
+    global _moderation_service
+    if _moderation_service is None:
+        _moderation_service = ModerationService()
+    return _moderation_service
