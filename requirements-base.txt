@@ -25,6 +25,12 @@ openai
 # Required when MODERATION_MODE=rule|hybrid
 # Weights (~200 MB) are downloaded on first use and cached in ~/.cache/huggingface
 # Comment out for a lightweight deployment that uses LLM-only mode
+#
+# CPU-only torch — installs before detoxify so pip's resolver doesn't pull the
+# CUDA build (~2 GB) as a transitive dep. Remove the --index-url line and this
+# comment if you ever move to a GPU host.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.12.0+cpu
 detoxify
 
 # ── Testing ───────────────────────────────────────────────────────────────────
