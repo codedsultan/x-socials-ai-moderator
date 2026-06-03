@@ -171,7 +171,8 @@ class RealtimeQueue:
         """Analyse one item and write results to MySQL. Records stats on every exit path."""
         async with self._semaphore:
             try:
-                result = await moderation_service.moderate(
+                # result = await moderation_service.moderate(
+                result = await get_moderation_service().moderate(
                     content_id=content_id,
                     content=content,
                     author_id=author_id,

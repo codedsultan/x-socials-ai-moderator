@@ -22,8 +22,7 @@ from app.models.schemas import (
 from app.models.settings import settings
 
 # from app.services.moderation_service import moderation_service
-from app.services.moderation_service import get_moderation_service
-from app.services.moderation_service import ModerationService
+from app.services.moderation_service import ModerationService, get_moderation_service
 from app.services.realtime_queue import realtime_queue
 from app.services.scan_service import scan_service
 
@@ -113,7 +112,7 @@ async def moderate_single(
     body: CommentRequest,
     force_model: str | None = None,
     _: None = Depends(verify_api_key),
-    svc: ModerationService = Depends(get_moderation_service),
+    svc: ModerationService = Depends(get_moderation_service),  # noqa: B008
 ) -> ModerationResult:
     return await svc.moderate(
         # return await moderation_service.moderate(
@@ -133,7 +132,7 @@ async def moderate_single(
 async def moderate_batch(
     body: BatchModerationRequest,
     _: None = Depends(verify_api_key),
-    svc: ModerationService = Depends(get_moderation_service),
+    svc: ModerationService = Depends(get_moderation_service),  # noqa: B008
 ) -> BatchModerationResponse:
     comments = [c.model_dump(by_alias=True) for c in body.comments]
     # results = await moderation_service.moderate_batch(comments)

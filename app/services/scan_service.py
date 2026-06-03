@@ -256,7 +256,8 @@ class ScanService:
 
         author_id = str(post_doc.get("authorId", ""))
 
-        result = await moderation_service.moderate(
+        # result = await moderation_service.moderate(
+        result = await get_moderation_service().moderate(
             content_id=post_id,
             content=content,
             author_id=author_id,
@@ -390,7 +391,8 @@ class ScanService:
     ) -> dict[str, int]:
         stats = {"scanned": len(comments), "flagged": 0, "review": 0, "safe": 0}
 
-        results = await moderation_service.moderate_batch(
+        # results = await moderation_service.moderate_batch(
+        results = await get_moderation_service().moderate_batch(
             items=comments,
             model=force_model,
             content_type="comment",
