@@ -66,6 +66,8 @@ jobs:
           # detoxify falls back to safe passthrough if torch isn't installed,
           # which is fine for CI — the backend tests mock the model directly.
           MODERATION_MODE: rule
+          TRANSFORMERS_OFFLINE: "1"
+          HF_DATASETS_OFFLINE:  "1"
 
           # Dummy values so pydantic-settings doesn't raise on missing fields.
           # No real API calls are made in tests (everything is mocked).
@@ -73,6 +75,8 @@ jobs:
           OPENAI_API_KEY:      test-openai-key
           OPENROUTER_API_KEY:  test-openrouter-key
           API_KEY:             test-api-key
+          
+
 
           # ── Databases ────────────────────────────────────────────
           # SQLite for tests — no Postgres or MySQL service needed in CI.
