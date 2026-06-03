@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router
 from app.models.settings import settings
 from app.services.db_client import close_laravel_db, close_mongo
+from app.services.moderation_service import get_moderation_service
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    get_moderation_service()  # warm backend at startup, not on first request
     logger.info(
         "Moderator starting  model=%s  remove_threshold=%.2f  review_threshold=%.2f",
         settings.moderator_model,
